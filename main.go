@@ -24,11 +24,14 @@ type ResticConfig struct {
 	Env        map[string]string
 	BackupArgs []string `yaml:"backup_args"`
 	Expire     ExpireConfig
+	Debug      bool
 }
 
 func (c *ResticConfig) resticCommand(args ...string) *exec.Cmd {
 	cmd := exec.Command("restic", args...)
-	log.Printf("args: %+v\n", args)
+	if c.Debug {
+		log.Printf("resticCommand; args:%+v\n", args)
+	}
 	cmd.Env = cmd.Environ()
 	cmd.Env = append(
 		cmd.Env,
@@ -38,8 +41,8 @@ func (c *ResticConfig) resticCommand(args ...string) *exec.Cmd {
 	for k, v := range c.Env {
 		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 	}
-	// Set the standard input, output, and error of the child process
-	// to the same as the parent process's standard handles
+
+	// let the child processes have our STDIO
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -84,18 +87,26 @@ func main() {
 				Value: "/etc/restic-runner.yml",
 				Usage: "path to config file",
 			},
+			&cli.BoolFlag{
+				Name:  "debug",
+				Value: false,
+				Usage: "enable additional debugging output",
+			},
 		},
 		Action: func(c *cli.Context) error {
 			conf := &ResticConfig{}
 			if err := configor.Load(conf, c.String("config")); err != nil {
 				log.Fatalf("failed to load config; error:%+v", err)
 			}
-			// log.Printf("config: %+v\n", conf)
+			if c.Bool("debug") {
+				log.Printf("running with config: %+v\n", conf)
+				conf.Debug = true
+			}
 
-			if conf.resticCheck() != nil {
-				log.Println("cat check failed, attempting repo init")
-				if conf.resticInit() != nil {
-					log.Fatal("repo init failed")
+			if err := conf.resticCheck(); err != nil {
+				log.Printf("cat check failed (%s), attempting repo init", err)
+				if err := conf.resticInit(); err != nil {
+					log.Fatalf("repo init failed; error:%s", err)
 				}
 			}
 			if err := conf.resticBackup(); err != nil {
