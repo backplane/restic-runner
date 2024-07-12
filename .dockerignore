@@ -5,4 +5,5 @@ config.yml
 go.mod
 go.sum
 main.go
+restic-runner
 testrepo
