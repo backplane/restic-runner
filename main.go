@@ -87,7 +87,9 @@ func main() {
 		},
 		Action: func(c *cli.Context) error {
 			conf := &ResticConfig{}
-			configor.Load(conf, c.String("config"))
+			if err := configor.Load(conf, c.String("config")); err != nil {
+				log.Fatalf("failed to load config; error:%+v", err)
+			}
 			// log.Printf("config: %+v\n", conf)
 
 			if conf.resticCheck() != nil {
