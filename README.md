@@ -8,18 +8,18 @@ The program emits the following help text when invoked with the '-h' or '--help'
 
 ```
 NAME:
-   backup - run restic backups
+   restic-runner - run restic backups from a config file
 
 USAGE:
-   backup [global options] command [command options]
+   restic-runner [global options] command [command options]
 
 COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --config value  path to config file (default: "/etc/restic-runner.yml")
-   --debug         enable additional debugging output (default: false)
-   --help, -h      show help
+   --config value    path to config file (default: "/etc/restic-runner.yml")
+   --loglevel value  how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "INFO")
+   --help, -h        show help
 ```
 
 ## Config File format
