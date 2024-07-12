@@ -1,0 +1,8 @@
+.git
+.github
+.gitignore
+config.yml
+go.mod
+go.sum
+main.go
+testrepo
