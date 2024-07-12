@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -23,12 +24,16 @@ var (
 func init() {
 	logLevel = new(slog.LevelVar)
 
+	cli.VersionPrinter = func(c *cli.Context) {
+		fmt.Printf("restic-runner version %s; commit %s; built on %s; by %s\n", version, commit, date, builtBy)
+	}
 }
 
 func main() {
 	app := &cli.App{
-		Name:  "restic-runner",
-		Usage: "run restic backups from a config file",
+		Name:    "restic-runner",
+		Version: version,
+		Usage:   "run restic backups from a config file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "config",
