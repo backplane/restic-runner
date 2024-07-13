@@ -66,6 +66,8 @@ func (r *ResticConfig) forget() error {
 		"-w", strconv.Itoa(r.Forget.Weeks),
 		"-m", strconv.Itoa(r.Forget.Months),
 		"-y", strconv.Itoa(r.Forget.Years),
+		"--prune",
+		"--compact",
 	)
 	return cmd.Run()
 }
