@@ -54,6 +54,16 @@ func main() {
 			setLogLevel(ctx.String("loglevel"))
 			logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
 
+			pidfile, err := MakePIDFile(ctx.String("pidfile"))
+			if err != nil {
+				return fmt.Errorf("FATAL: failed to write pidfile; error:%s", err)
+			}
+			defer func() {
+				if err := pidfile.Close(); err != nil {
+					logger.Error("FATAL: failed to remove pidfile", "error", err)
+				}
+			}()
+
 			logger.Debug("starting up",
 				"version", version,
 				"commit", commit,
@@ -63,42 +73,26 @@ func main() {
 
 			conf := &ResticConfig{}
 			if err := configor.Load(conf, ctx.String("config")); err != nil {
-				logger.Error("FATAL: failed to load config", "error", err)
-				os.Exit(1)
+				return fmt.Errorf("FATAL: failed to load config; error:%s", err)
 			}
 			logger.Debug("starting with config", "config", conf)
-
-			pidfile, err := MakePIDFile(ctx.String("pidfile"))
-			if err != nil {
-				logger.Error("FATAL: failed to write pidfile", "error", err)
-				os.Exit(1)
-
-			}
-			defer func() {
-				if err := pidfile.Close(); err != nil {
-					logger.Error("FATAL: failed to remove pidfile", "error", err)
-				}
-			}()
 
 			if err := conf.check(); err != nil {
 				logger.Warn("config check failed, possibly repo init is needed, trying that...")
 				if err := conf.init(); err != nil {
-					logger.Error("FATAL: repo init failed", "error", err)
-					os.Exit(1)
+					return fmt.Errorf("FATAL: repo init failed; error:%s", err)
 				}
 				logger.Info("repo init complete")
 			}
 
 			logger.Info("starting backup")
 			if err := conf.backup(); err != nil {
-				logger.Error("FATAL: failed to backup", "error", err)
-				os.Exit(1)
+				return fmt.Errorf("FATAL: failed to backup; error:%s", err)
 			}
 
 			logger.Info("cleaning up old backups")
 			if err := conf.forget(); err != nil {
-				logger.Error("FATAL: failed to cleanup old backups", "error", err)
-				os.Exit(1)
+				return fmt.Errorf("FATAL: failed to cleanup old backups; error:%s", err)
 			}
 
 			return nil
@@ -106,7 +100,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		logger.Error("FATAL: execution failed", "error", err)
+		logger.Error("execution failed", "error", err)
 		os.Exit(1)
 	}
 }
