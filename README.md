@@ -13,13 +13,18 @@ NAME:
 USAGE:
    restic-runner [global options] command [command options]
 
+VERSION:
+   dev
+
 COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --config value    path to config file (default: "/etc/restic-runner.yml")
    --loglevel value  how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "INFO")
+   --pidfile value   how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "/var/run/restic-runner.pid")
    --help, -h        show help
+   --version, -v     print the version
 ```
 
 ## Config File format

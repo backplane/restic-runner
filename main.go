@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"os"
 
@@ -45,6 +44,11 @@ func main() {
 				Value: "INFO",
 				Usage: "how verbosely to log, one of: DEBUG, INFO, WARN, ERROR",
 			},
+			&cli.StringFlag{
+				Name:  "pidfile",
+				Value: "/var/run/restic-runner.pid",
+				Usage: "how verbosely to log, one of: DEBUG, INFO, WARN, ERROR",
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			setLogLevel(ctx.String("loglevel"))
@@ -59,26 +63,42 @@ func main() {
 
 			conf := &ResticConfig{}
 			if err := configor.Load(conf, ctx.String("config")); err != nil {
-				log.Fatalf("failed to load config; error:%+v", err)
+				logger.Error("FATAL: failed to load config", "error", err)
+				os.Exit(1)
 			}
 			logger.Debug("starting with config", "config", conf)
 
+			pidfile, err := MakePIDFile(ctx.String("pidfile"))
+			if err != nil {
+				logger.Error("FATAL: failed to write pidfile", "error", err)
+				os.Exit(1)
+
+			}
+			defer func() {
+				if err := pidfile.Close(); err != nil {
+					logger.Error("FATAL: failed to remove pidfile", "error", err)
+				}
+			}()
+
 			if err := conf.check(); err != nil {
-				logger.Info("config check failed, possibly repo init is needed, trying that...")
+				logger.Warn("config check failed, possibly repo init is needed, trying that...")
 				if err := conf.init(); err != nil {
-					log.Fatalf("repo init failed; error:%s", err)
+					logger.Error("FATAL: repo init failed", "error", err)
+					os.Exit(1)
 				}
 				logger.Info("repo init complete")
 			}
 
 			logger.Info("starting backup")
 			if err := conf.backup(); err != nil {
-				log.Fatalf("failed to backup; error:%+v", err)
+				logger.Error("FATAL: failed to backup", "error", err)
+				os.Exit(1)
 			}
 
 			logger.Info("cleaning up old backups")
 			if err := conf.forget(); err != nil {
-				log.Fatalf("failed to cleanup old backups; error:%+v", err)
+				logger.Error("FATAL: failed to cleanup old backups", "error", err)
+				os.Exit(1)
 			}
 
 			return nil
@@ -86,6 +106,7 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		logger.Error("FATAL: execution failed", "error", err)
+		os.Exit(1)
 	}
 }
