@@ -14,7 +14,7 @@ USAGE:
    restic-runner [global options] command [command options]
 
 VERSION:
-   dev
+   v0.5.0
 
 COMMANDS:
    cycle    run a restic backup / prune / check cycle using values in a config file
