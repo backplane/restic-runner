@@ -47,7 +47,12 @@ func (r *ResticConfig) init() error {
 	return cmd.Run()
 }
 
-func (r *ResticConfig) check() error {
+func (r *ResticConfig) backup_check() error {
+	cmd := r.cmd("check")
+	return cmd.Run()
+}
+
+func (r *ResticConfig) config_check() error {
 	cmd := r.cmd("cat", "config")
 	return cmd.Run()
 }
@@ -56,6 +61,11 @@ func (r *ResticConfig) backup() error {
 	backupArgs := []string{"backup", "--verbose"}
 	backupArgs = append(backupArgs, r.BackupArgs...)
 	cmd := r.cmd(backupArgs...)
+	return cmd.Run()
+}
+
+func (r *ResticConfig) command(args []string) error {
+	cmd := r.cmd(args...)
 	return cmd.Run()
 }
 
