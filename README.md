@@ -8,7 +8,7 @@ The program emits the following help text when invoked with the '-h' or '--help'
 
 ```
 NAME:
-   restic-runner - run restic backups from a config file
+   restic-runner - run restic from a config file
 
 USAGE:
    restic-runner [global options] command [command options]
@@ -17,12 +17,14 @@ VERSION:
    dev
 
 COMMANDS:
+   cycle    run a restic backup / prune / check cycle using values in a config file
+   command  run arbitrary restic commands using values in a config file
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --config value    path to config file (default: "/etc/restic-runner.yml")
+   --config value    path to config file (default: "/Users/user/.restic-runner.yml")
    --loglevel value  how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "INFO")
-   --pidfile value   how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "/var/run/restic-runner.pid")
+   --pidfile value   path to pid lock file; this file prevents issues concurrent jobs (default: "/Users/user/.restic-runner.pid")
    --help, -h        show help
    --version, -v     print the version
 ```
