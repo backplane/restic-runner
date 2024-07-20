@@ -4,39 +4,96 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
-	"github.com/jinzhu/configor"
 	"github.com/urfave/cli/v2"
 )
 
+const defaultUserConfigFile = "~/.restic-runner.yml"
+const defaultUserPidFile = "~/.restic-runner.pid"
+const defaultSystemConfigFile = "/etc/restic-runner.yml"
+const defaultSystemPidFile = "/var/run/restic-runner.pid"
+
+const cmdNameCycle = "cycle"
+const cmdNameCommand = "command"
+
 var (
 	// version, commit, date, builtBy are provided by goreleaser during build
-	version = "dev"
-	commit  = "dev"
-	date    = "unknown"
-	builtBy = "unknown"
+	progname string = "restic-runner"
+	version  string = "dev"
+	commit   string = "dev"
+	date     string = "unknown"
+	builtBy  string = "unknown"
 
-	logLevel *slog.LevelVar
-	logger   *slog.Logger
+	defaultConfigFile string = defaultSystemConfigFile
+	defaultPidFile    string = defaultSystemPidFile
+
+	logger *slog.Logger
 )
 
 func init() {
-	logLevel = new(slog.LevelVar)
-
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("restic-runner version %s; commit %s; built on %s; by %s\n", version, commit, date, builtBy)
+		fmt.Printf("%s version %s; commit %s; built on %s; by %s\n", progname, version, commit, date, builtBy)
 	}
+	if os.Geteuid() != 0 {
+		defaultConfigFile = defaultUserConfigFile
+		defaultPidFile = defaultUserPidFile
+	}
+
+	logger = slog.Default()
 }
 
 func main() {
+	if expanded, err := ExpandTilde(defaultConfigFile); err == nil {
+		defaultConfigFile = expanded
+	}
+	if expanded, err := ExpandTilde(defaultPidFile); err == nil {
+		defaultPidFile = expanded
+	}
+
 	app := &cli.App{
-		Name:    "restic-runner",
+		Name:    progname,
 		Version: version,
-		Usage:   "run restic backups from a config file",
+		Usage:   "operate restic with a config file",
+		Before: func(ctx *cli.Context) error {
+			// set the log level
+			logLevelStr := ctx.String("loglevel")
+			switch strings.ToUpper(logLevelStr) {
+			case "INFO":
+				slog.SetLogLoggerLevel(slog.LevelInfo)
+			case "WARN":
+				slog.SetLogLoggerLevel(slog.LevelWarn)
+			case "ERROR":
+				slog.SetLogLoggerLevel(slog.LevelError)
+			case "DEBUG":
+				slog.SetLogLoggerLevel(slog.LevelDebug)
+			default:
+				return fmt.Errorf("FATAL: unable to parse loglevel value: '%s'", logLevelStr)
+			}
+			logger.Debug("starting up",
+				"version", version,
+				"commit", commit,
+				"date", date,
+				"builder", builtBy,
+			)
+			return nil
+		},
+		Commands: []*cli.Command{
+			{
+				Name:   cmdNameCycle,
+				Usage:  "run a restic backup / prune / check cycle using values in a config file",
+				Action: MegaHandler,
+			},
+			{
+				Name:   cmdNameCommand,
+				Usage:  "run arbitrary restic commands using values in a config file",
+				Action: MegaHandler,
+			},
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "config",
-				Value: "/etc/restic-runner.yml",
+				Value: defaultConfigFile,
 				Usage: "path to config file",
 			},
 			&cli.StringFlag{
@@ -46,56 +103,9 @@ func main() {
 			},
 			&cli.StringFlag{
 				Name:  "pidfile",
-				Value: "/var/run/restic-runner.pid",
-				Usage: "how verbosely to log, one of: DEBUG, INFO, WARN, ERROR",
+				Value: defaultPidFile,
+				Usage: "path to pid lock file; this file prevents issues concurrent jobs",
 			},
-		},
-		Action: func(ctx *cli.Context) error {
-			setLogLevel(ctx.String("loglevel"))
-			logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel}))
-
-			pidfile, err := MakePIDFile(ctx.String("pidfile"))
-			if err != nil {
-				return fmt.Errorf("FATAL: failed to write pidfile; error:%s", err)
-			}
-			defer func() {
-				if err := pidfile.Close(); err != nil {
-					logger.Error("FATAL: failed to remove pidfile", "error", err)
-				}
-			}()
-
-			logger.Debug("starting up",
-				"version", version,
-				"commit", commit,
-				"date", date,
-				"builder", builtBy,
-			)
-
-			conf := &ResticConfig{}
-			if err := configor.Load(conf, ctx.String("config")); err != nil {
-				return fmt.Errorf("FATAL: failed to load config; error:%s", err)
-			}
-			logger.Debug("starting with config", "config", conf)
-
-			if err := conf.check(); err != nil {
-				logger.Warn("config check failed, possibly repo init is needed, trying that...")
-				if err := conf.init(); err != nil {
-					return fmt.Errorf("FATAL: repo init failed; error:%s", err)
-				}
-				logger.Info("repo init complete")
-			}
-
-			logger.Info("starting backup")
-			if err := conf.backup(); err != nil {
-				return fmt.Errorf("FATAL: failed to backup; error:%s", err)
-			}
-
-			logger.Info("cleaning up old backups")
-			if err := conf.forget(); err != nil {
-				return fmt.Errorf("FATAL: failed to cleanup old backups; error:%s", err)
-			}
-
-			return nil
 		},
 	}
 
