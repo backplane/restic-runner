@@ -4,7 +4,7 @@ go 1.22.5
 
 require (
 	github.com/jinzhu/configor v1.2.2
-	github.com/urfave/cli/v2 v2.27.2
+	github.com/urfave/cli/v2 v2.27.3
 )
 
 require (
