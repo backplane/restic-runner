@@ -1,6 +1,6 @@
 module github.com/backplane/restic-runner
 
-go 1.25.6
+go 1.22.5
 
 require (
 	github.com/jinzhu/configor v1.2.2
