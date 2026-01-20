@@ -21,6 +21,8 @@ builds:
     ignore:
       - goos: freebsd
         goarch: arm64
+      - goos: windows
+        goarch: arm
 universal_binaries:
   - id: cli
     replace: false
@@ -28,24 +30,21 @@ archives:
   - id: cli
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - README.md
       - LICENSE.txt
     name_template: >-
       {{- .ProjectName -}}_
       {{- .Version -}}_
-      {{- if eq .Os "darwin" -}}
-      macos
-      {{- else -}}
-      {{ .Os }}
-      {{- end -}}_
+      {{- if eq .Os "darwin" -}}macos{{- else -}}{{ .Os }}{{- end -}}_
       {{- .Arch -}}
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"

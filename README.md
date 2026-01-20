@@ -22,9 +22,9 @@ COMMANDS:
    help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --config value    path to config file (default: "/Users/user/.restic-runner.yml")
+   --config value    path to config file (default: "~/.restic-runner.yml")
    --loglevel value  how verbosely to log, one of: DEBUG, INFO, WARN, ERROR (default: "INFO")
-   --pidfile value   path to pid lock file; this file prevents issues concurrent jobs (default: "/Users/user/.restic-runner.pid")
+   --pidfile value   path to pid lock file; this file prevents issues concurrent jobs (default: "~/.restic-runner.pid")
    --help, -h        show help
    --version, -v     print the version
 ```
