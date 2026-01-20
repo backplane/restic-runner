@@ -145,6 +145,6 @@ jobs:
       - name: Update Docker Hub Description
         uses: peter-evans/dockerhub-description@v5
         with:
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN_DOCKERHUB_DESCRIPTION }}
           repository: ${{ github.repository }}
